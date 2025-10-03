@@ -1,0 +1,69 @@
+25.03
+docker pull nvcr.io/nvidia/tensorrt:25.03-py3
+
+
+ 
+
+ docker run --gpus all   -it  --net host   --ipc=host  -v $(pwd)/yolov9:/yolov9  -v $(pwd)/coco/:/yolov9/coco  -v $(pwd)/runs:/yolov9/runs  nvcr.io/nvidia/tensorrt:25.03-py3
+
+
+wget https://github.com/PetrusNoleto/Error-in-install-cisco-packet-tracer-in-ubuntu-23.10-unmet-dependencies/releases/download/CiscoPacketTracerFixUnmetDependenciesUbuntu23.10/libegl1-mesa_23.0.4-0ubuntu1.22.04.1_amd64.deb
+apt install libegl1
+dpkg -i libegl1-mesa_23.0.4-0ubuntu1.22.04.1_amd64.deb 
+apt-get install -y zip htop screen libfreetype6-dev
+
+
+    1  ls
+    2  cd /
+    3  ls
+    4  ls yolov9/
+    5  git clone https://github.com/levipereira/yolov9-qat.git
+    6  cd /yolov9-qat
+    7  ./patch_yolov9.sh /yolov9
+    8  ls ../yolov9
+    9  bash install_dependencies.sh 
+   10  history
+   11  nano install_dependencies.sh
+   12  python3
+   13  history
+
+
+
+
+/usr/src/tensorrt/bin/trtexec \
+  --onnx=/yolov9/yolov9-c-qat-end2end.onnx \
+  --int8 --fp16  \
+  --useCudaGraph \
+  --minShapes=images:1x3x640x640 \
+  --optShapes=images:4x3x640x640 \
+  --maxShapes=images:8x3x640x640 \
+  --saveEngine=/yolov9/yolov9-c-qat-end2end.engine
+
+
+/usr/src/tensorrt/bin/trtexec \
+  --onnx=/yolov9/yolov9-c-qat.onnx \
+  --int8 --fp16  \
+  --useCudaGraph \
+  --minShapes=images:1x3x640x640 \
+  --optShapes=images:4x3x640x640 \
+  --maxShapes=images:8x3x640x640 \
+  --saveEngine=/yolov9/yolov9-c-qat.engine
+
+
+# Set variable batch_size  and model_path_no_ext
+export batch_size=4
+export filepath_no_ext=/yolov9/yolov9-c-qat
+/usr/src/tensorrt/bin/trtexec \
+	--onnx=${filepath_no_ext}.onnx \
+	--fp16 \
+	--int8 \
+	--saveEngine=${filepath_no_ext}.engine \
+	--timingCacheFile=${filepath_no_ext}.engine.timing.cache \
+	--warmUp=500 \
+	--duration=10  \
+	--useCudaGraph \
+	--useSpinWait \
+	--noDataTransfers \
+	--minShapes=images:1x3x640x640 \
+	--optShapes=images:${batch_size}x3x640x640 \
+	--maxShapes=images:${batch_size}x3x640x640
